@@ -1,0 +1,67 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>TrendFlow AI</title>
+<style>
+* { box-sizing: border-box; margin: 0; padding: 0; }
+body { background: #0a0a0f; color: #e8e8f0; font-family: Arial, sans-serif; min-height: 100vh; padding: 20px; }
+h1 { color: #a78bfa; font-size: 28px; margin-bottom: 20px; }
+select, button { width: 100%; padding: 12px; margin: 8px 0; border-radius: 8px; border: 1px solid #333; background: #111; color: #fff; font-size: 14px; }
+button { background: #7c3aed; border: none; cursor: pointer; font-size: 16px; font-weight: bold; }
+#output { background: #111; border: 1px solid #7c3aed44; border-radius: 10px; padding: 16px; margin-top: 16px; min-height: 100px; white-space: pre-wrap; line-height: 1.6; }
+.ad { background: #111; border: 1px solid #333; border-radius: 8px; padding: 12px; margin: 8px 0; font-size: 12px; color: #888; }
+</style>
+</head>
+<body>
+<h1>⚡ TrendFlow AI</h1>
+<p style="color:#888;margin-bottom:16px">Turn trending topics into viral content</p>
+<div class="ad">📊 ViralMetrics Pro — Track your content performance <span style="float:right;border:1px solid #333;padding:2px 6px;border-radius:4px">AD</span></div>
+<label style="color:#888;font-size:12px">TRENDING TOPIC</label>
+<select id="trend">
+<option>#AITools</option>
+<option>#SideHustles</option>
+<option>#CryptoNews</option>
+<option>#MentalHealth</option>
+<option>#WorkFromHome</option>
+</select>
+<label style="color:#888;font-size:12px">PLATFORM</label>
+<select id="platform">
+<option>Twitter Thread</option>
+<option>Instagram Caption</option>
+<option>TikTok Script</option>
+<option>LinkedIn Post</option>
+</select>
+<label style="color:#888;font-size:12px">TONE</label>
+<select id="tone">
+<option>Bold & Punchy</option>
+<option>Educational</option>
+<option>Funny & Casual</option>
+<option>Professional</option>
+</select>
+<button onclick="generate()">⚡ Generate Content</button>
+<div id="output">Select options above and tap Generate!</div>
+<div class="ad">💰 Make Money Online — Top tools creators use daily <span style="float:right;border:1px solid #333;padding:2px 6px;border-radius:4px">AD</span></div>
+<script>
+async function generate() {
+  const trend = document.getElementById('trend').value;
+  const platform = document.getElementById('platform').value;
+  const tone = document.getElementById('tone').value;
+  const output = document.getElementById('output');
+  output.textContent = '⚡ Generating...';
+  try {
+    const res = await fetch('https://api.anthropic.com/v1/messages', {
+      method: 'POST',
+      headers: {'Content-Type': 'application/json', 'x-api-key': 'YOUR_API_KEY', 'anthropic-version': '2023-06-01'},
+      body: JSON.stringify({model: 'claude-haiku-4-5-20251001', max_tokens: 500, messages: [{role: 'user', content: `Write a ${platform} about ${trend} in a ${tone} tone. Make it viral and engaging. Only output the content.`}]})
+    });
+    const data = await res.json();
+    output.textContent = data.content[0].text;
+  } catch(e) {
+    output.textContent = 'Error generating. Please try again.';
+  }
+}
+</script>
+</body>
+</html>
