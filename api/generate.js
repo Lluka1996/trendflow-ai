@@ -1,17 +1,12 @@
 export default async function handler(req, res) {
   res.setHeader('Access-Control-Allow-Origin', '*');
-  res.setHeader('Access-Control-Allow-Methods', 'POST');
   
   if (req.method !== 'POST') {
     return res.status(405).json({ error: 'Method not allowed' });
   }
 
   const { trend, platform, tone } = req.body;
-  const apiKey = process.env.ANTHROPIC_API_KEY;
-
-  if (!apiKey) {
-    return res.status(500).json({ error: 'API key not configured' });
-  }
+  const apiKey = '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';
 
   try {
     const response = await fetch('https://api.anthropic.com/v1/messages', {
@@ -32,11 +27,9 @@ export default async function handler(req, res) {
     });
 
     const data = await response.json();
-    
     if (data.error) {
       return res.status(500).json({ error: data.error.message });
     }
-    
     res.status(200).json({ content: data.content[0].text });
   } catch (error) {
     res.status(500).json({ error: error.message });
