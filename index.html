@@ -51,9 +51,9 @@ async function generate() {
   const output = document.getElementById('output');
   output.textContent = '⚡ Generating...';
   try {
-    const res = await fetch('https://api.anthropic.com/v1/messages', {
+    const res = await fetch('https://trendflow-proxy.llukaalban4ever.workers.dev', {
       method: 'POST',
-      headers: {'Content-Type': 'application/json', 'x-api-key': 'sk-ant-api03-YezFW4xTOdRjM0VYyMzCUKre1OgNF6kTgjri3099mIj5AaOS6tAKhI1Cxz9NcdGmMwkW49otwmc-ux_oOD-3Bg', 'anthropic-version': '2023-06-01'},
+      headers: {'Content-Type': 'application/json'},
       body: JSON.stringify({model: 'claude-haiku-4-5-20251001', max_tokens: 500, messages: [{role: 'user', content: `Write a ${platform} about ${trend} in a ${tone} tone. Make it viral and engaging. Only output the content.`}]})
     });
     const data = await res.json();
