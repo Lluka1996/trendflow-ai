@@ -1,0 +1,498 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+<title>GRAVITON — Particle Gravity Simulator</title>
+<style>
+* { margin: 0; padding: 0; box-sizing: border-box; }
+html, body { width: 100%; height: 100%; overflow: hidden; background: #000; }
+canvas {
+  display: block;
+  position: fixed;
+  top: 0; left: 0;
+  cursor: crosshair;
+  touch-action: none;
+}
+
+#hud {
+  position: fixed;
+  top: 0; left: 0; right: 0; bottom: 0;
+  pointer-events: none;
+  font-family: 'SF Mono', 'Menlo', 'Courier New', monospace;
+}
+
+#logo {
+  position: absolute;
+  top: 24px; left: 28px;
+}
+#logo h1 {
+  font-size: 26px;
+  font-weight: 200;
+  letter-spacing: 12px;
+  color: rgba(130, 190, 255, 0.92);
+  text-shadow: 0 0 40px rgba(100, 170, 255, 0.45);
+}
+#logo p {
+  font-size: 9px;
+  letter-spacing: 4px;
+  color: rgba(255, 255, 255, 0.2);
+  margin-top: 4px;
+}
+
+#hints {
+  position: absolute;
+  top: 24px; right: 28px;
+  text-align: right;
+  font-size: 9px;
+  letter-spacing: 2px;
+  line-height: 2.4;
+  color: rgba(255, 255, 255, 0.16);
+}
+
+#stats {
+  position: absolute;
+  bottom: 68px; right: 28px;
+  text-align: right;
+  font-size: 9px;
+  letter-spacing: 2px;
+  line-height: 2.2;
+  color: rgba(255, 255, 255, 0.15);
+}
+
+#controls {
+  position: absolute;
+  bottom: 24px;
+  left: 50%;
+  transform: translateX(-50%);
+  display: flex;
+  gap: 8px;
+  pointer-events: all;
+  white-space: nowrap;
+}
+
+.btn {
+  padding: 9px 22px;
+  border-radius: 100px;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  background: rgba(0, 0, 0, 0.55);
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
+  color: rgba(255, 255, 255, 0.32);
+  font-family: 'SF Mono', 'Menlo', 'Courier New', monospace;
+  font-size: 9px;
+  letter-spacing: 3px;
+  cursor: pointer;
+  transition: all 0.22s ease;
+  text-transform: uppercase;
+  outline: none;
+  user-select: none;
+}
+.btn:hover {
+  border-color: rgba(130, 190, 255, 0.4);
+  color: rgba(160, 215, 255, 0.85);
+  background: rgba(100, 160, 255, 0.08);
+}
+.btn.active {
+  border-color: rgba(130, 190, 255, 0.75);
+  color: rgba(175, 220, 255, 1);
+  background: rgba(100, 160, 255, 0.18);
+  box-shadow: 0 0 22px rgba(100, 160, 255, 0.22), inset 0 0 12px rgba(100, 160, 255, 0.1);
+}
+#btn-repel.active {
+  border-color: rgba(255, 130, 130, 0.75);
+  color: rgba(255, 175, 175, 1);
+  background: rgba(255, 80, 80, 0.15);
+  box-shadow: 0 0 22px rgba(255, 100, 100, 0.22), inset 0 0 12px rgba(255, 100, 100, 0.1);
+}
+#btn-vortex.active {
+  border-color: rgba(100, 255, 175, 0.75);
+  color: rgba(150, 255, 200, 1);
+  background: rgba(60, 200, 120, 0.15);
+  box-shadow: 0 0 22px rgba(80, 255, 160, 0.22), inset 0 0 12px rgba(80, 255, 160, 0.1);
+}
+.btn.danger:hover {
+  border-color: rgba(255, 120, 100, 0.4);
+  color: rgba(255, 160, 145, 0.85);
+  background: rgba(255, 80, 60, 0.08);
+}
+
+/* strength indicator bar */
+#strength-bar {
+  position: absolute;
+  bottom: 68px; left: 28px;
+  width: 120px;
+}
+#strength-label {
+  font-size: 8px;
+  letter-spacing: 3px;
+  color: rgba(255,255,255,0.15);
+  margin-bottom: 5px;
+}
+#strength-track {
+  height: 2px;
+  background: rgba(255,255,255,0.08);
+  border-radius: 1px;
+  overflow: visible;
+  position: relative;
+}
+#strength-fill {
+  height: 2px;
+  background: rgba(130,190,255,0.6);
+  border-radius: 1px;
+  transition: width 0.1s;
+  box-shadow: 0 0 6px rgba(130,190,255,0.5);
+}
+</style>
+</head>
+<body>
+<canvas id="c"></canvas>
+
+<div id="hud">
+  <div id="logo">
+    <h1>GRAVITON</h1>
+    <p>PARTICLE GRAVITY SIMULATOR</p>
+  </div>
+
+  <div id="hints">
+    CLICK &amp; DRAG &nbsp;·&nbsp; CREATE WELL<br>
+    RIGHT CLICK &nbsp;·&nbsp; REPULSOR<br>
+    SCROLL &nbsp;·&nbsp; WELL STRENGTH<br>
+    SPACE &nbsp;·&nbsp; CLEAR ALL
+  </div>
+
+  <div id="strength-bar">
+    <div id="strength-label">STRENGTH</div>
+    <div id="strength-track"><div id="strength-fill" style="width:25%"></div></div>
+  </div>
+
+  <div id="stats">
+    <div id="fps-el">60 FPS</div>
+    <div id="wells-el">0 WELLS</div>
+  </div>
+
+  <div id="controls">
+    <button class="btn active" id="btn-attract">ATTRACT</button>
+    <button class="btn" id="btn-repel">REPEL</button>
+    <button class="btn" id="btn-vortex">VORTEX</button>
+    <button class="btn danger" id="btn-reset">RESET</button>
+  </div>
+</div>
+
+<script>
+(function () {
+  'use strict';
+
+  const canvas = document.getElementById('c');
+  const ctx    = canvas.getContext('2d');
+
+  let W, H, cx, cy;
+  const N = 5000;
+
+  // Particle state in typed arrays for max performance
+  const X  = new Float32Array(N);
+  const Y  = new Float32Array(N);
+  const VX = new Float32Array(N);
+  const VY = new Float32Array(N);
+
+  // Wells: array of plain objects
+  const wells = [];
+  let   mode   = 'attract';
+  let   wellStrength = 1.0;
+  let   dragWell     = null;
+  let   isPointerDown = false;
+
+  const CORE_G     = 3400;  // galactic core gravity constant
+  const MAX_SPD    = 18;    // particle speed cap (px/frame)
+  const DAMPING    = 0.997;
+
+  // ── Resize ─────────────────────────────────────────────────────────────────
+  function resize() {
+    W  = canvas.width  = window.innerWidth;
+    H  = canvas.height = window.innerHeight;
+    cx = W / 2;
+    cy = H / 2;
+  }
+
+  // ── Galaxy Initialisation ──────────────────────────────────────────────────
+  // Particles start in a three-arm logarithmic spiral + central bulge.
+  // Initial velocities are tangential (Keplerian approximation) so the
+  // galaxy naturally rotates without any external driving force.
+  function initGalaxy() {
+    const R    = Math.min(W, H) * 0.37;
+    const ARMS = 3;
+
+    for (let i = 0; i < N; i++) {
+      let r, angle;
+
+      if (Math.random() < 0.72) {
+        // Spiral arm
+        const arm = i % ARMS;
+        const t   = Math.pow(Math.random(), 0.55); // weight toward outer regions
+        r = 22 + t * R;
+        const spread = (0.22 + t * 0.2) * (Math.random() < 0.5 ? 1 : -1);
+        angle = (arm / ARMS) * Math.PI * 2 + t * Math.PI * 4.8 + spread;
+      } else {
+        // Central bulge
+        r     = Math.random() * R * 0.17;
+        angle = Math.random() * Math.PI * 2;
+      }
+
+      X[i] = cx + r * Math.cos(angle);
+      Y[i] = cy + r * Math.sin(angle);
+
+      // Tangential orbital speed ∝ 1/√r (Keplerian)
+      const v = Math.sqrt(CORE_G / (r + 22)) * (0.84 + Math.random() * 0.32);
+      VX[i] = -Math.sin(angle) * v;
+      VY[i] =  Math.cos(angle) * v;
+    }
+  }
+
+  // ── Physics Update ─────────────────────────────────────────────────────────
+  function update() {
+    for (let i = 0; i < N; i++) {
+      let ax = 0, ay = 0;
+
+      // Galactic core: inverse-square gravity toward center
+      const dx0 = cx - X[i];
+      const dy0 = cy - Y[i];
+      const d20 = dx0 * dx0 + dy0 * dy0 + 900;
+      const f0  = CORE_G / d20;
+      ax += dx0 * f0;
+      ay += dy0 * f0;
+
+      // User-placed well forces
+      for (let j = 0; j < wells.length; j++) {
+        const w  = wells[j];
+        const dx = w.x - X[i];
+        const dy = w.y - Y[i];
+        const d2 = dx * dx + dy * dy + 100;
+        const d  = Math.sqrt(d2);
+        const f  = w.strength * 62000 / d2;
+        const nx = dx / d;
+        const ny = dy / d;
+
+        if (w.type === 'attract') {
+          ax += nx * f;
+          ay += ny * f;
+        } else if (w.type === 'repel') {
+          ax -= nx * f * 1.65;
+          ay -= ny * f * 1.65;
+        } else {
+          // vortex: strong tangential + weak centripetal
+          ax += (-ny * 0.78 + nx * 0.06) * f;
+          ay += ( nx * 0.78 + ny * 0.06) * f;
+        }
+      }
+
+      // Integrate velocity
+      VX[i] += ax * 0.01;
+      VY[i] += ay * 0.01;
+
+      // Damping (light, space-like)
+      VX[i] *= DAMPING;
+      VY[i] *= DAMPING;
+
+      // Speed cap
+      const spd2 = VX[i] * VX[i] + VY[i] * VY[i];
+      if (spd2 > MAX_SPD * MAX_SPD) {
+        const inv = MAX_SPD / Math.sqrt(spd2);
+        VX[i] *= inv;
+        VY[i] *= inv;
+      }
+
+      // Integrate position
+      X[i] += VX[i];
+      Y[i] += VY[i];
+
+      // Toroidal wrap
+      if      (X[i] < -28)    X[i] = W + 28;
+      else if (X[i] > W + 28) X[i] = -28;
+      if      (Y[i] < -28)    Y[i] = H + 28;
+      else if (Y[i] > H + 28) Y[i] = -28;
+    }
+
+    wells.forEach(w => w.age++);
+  }
+
+  // ── Render ─────────────────────────────────────────────────────────────────
+  function draw() {
+    // Fade-to-space trail: near-black with blue tint, slow decay = long trails
+    ctx.globalCompositeOperation = 'source-over';
+    ctx.fillStyle = 'rgba(2, 4, 20, 0.13)';
+    ctx.fillRect(0, 0, W, H);
+
+    // Particles: additive blending = dense regions glow brighter (bloom effect)
+    ctx.globalCompositeOperation = 'lighter';
+
+    for (let i = 0; i < N; i++) {
+      const spd = Math.sqrt(VX[i] * VX[i] + VY[i] * VY[i]);
+      // Colour ramp: deep blue (slow) → cyan → yellow → white (fast)
+      const hue = Math.max(0, 220 - spd * 13.5);
+      const lit = Math.min(78, 18 + spd * 6.8);
+      ctx.fillStyle = `hsl(${hue},90%,${lit}%)`;
+      ctx.fillRect(X[i] - 0.8, Y[i] - 0.8, 1.6, 1.6);
+    }
+
+    // Switch back to normal compositing for overlays
+    ctx.globalCompositeOperation = 'source-over';
+
+    // Galactic core glow
+    const cg = ctx.createRadialGradient(cx, cy, 0, cx, cy, 45);
+    cg.addColorStop(0, 'rgba(200, 225, 255, 0.14)');
+    cg.addColorStop(1, 'rgba(200, 225, 255, 0)');
+    ctx.beginPath();
+    ctx.arc(cx, cy, 45, 0, 6.2832);
+    ctx.fillStyle = cg;
+    ctx.fill();
+
+    // User wells
+    for (let j = 0; j < wells.length; j++) {
+      const w     = wells[j];
+      const alpha = Math.min(1, w.age / 18);
+      const pulse = 0.86 + 0.14 * Math.sin(w.age * 0.09);
+      const r     = 58 * pulse;
+
+      let rgb;
+      if      (w.type === 'attract') rgb = '90,185,255';
+      else if (w.type === 'repel')   rgb = '255,90,90';
+      else                           rgb = '80,255,165';
+
+      const g = ctx.createRadialGradient(w.x, w.y, 0, w.x, w.y, r);
+      g.addColorStop(0,    `rgba(${rgb},${0.62 * alpha})`);
+      g.addColorStop(0.38, `rgba(${rgb},${0.18 * alpha})`);
+      g.addColorStop(1,    `rgba(${rgb},0)`);
+
+      ctx.beginPath();
+      ctx.arc(w.x, w.y, r, 0, 6.2832);
+      ctx.fillStyle = g;
+      ctx.fill();
+
+      // Bright core dot
+      ctx.beginPath();
+      ctx.arc(w.x, w.y, 3.2 * pulse, 0, 6.2832);
+      ctx.fillStyle = `rgba(${rgb},${alpha})`;
+      ctx.fill();
+    }
+  }
+
+  // ── FPS & Stats ────────────────────────────────────────────────────────────
+  let fpsFrames = 0, fpsLast = performance.now();
+  const fpsEl   = document.getElementById('fps-el');
+  const wellsEl = document.getElementById('wells-el');
+
+  function loop(now) {
+    fpsFrames++;
+    if (now - fpsLast >= 500) {
+      fpsEl.textContent   = Math.round(fpsFrames * 1000 / (now - fpsLast)) + ' FPS';
+      wellsEl.textContent = wells.length + (wells.length === 1 ? ' WELL' : ' WELLS');
+      fpsFrames = 0;
+      fpsLast   = now;
+    }
+    update();
+    draw();
+    requestAnimationFrame(loop);
+  }
+
+  // ── Well Management ────────────────────────────────────────────────────────
+  function addWell(x, y, type) {
+    const w = { x, y, type, strength: wellStrength, age: 0 };
+    wells.push(w);
+    return w;
+  }
+
+  function updateStrengthUI() {
+    document.getElementById('strength-fill').style.width =
+      ((wellStrength - 0.15) / (4 - 0.15) * 100).toFixed(1) + '%';
+  }
+
+  // ── Controls ───────────────────────────────────────────────────────────────
+  function setMode(m) {
+    mode = m;
+    document.querySelectorAll('.btn[id^="btn-"]').forEach(b => b.classList.remove('active'));
+    document.getElementById('btn-' + m).classList.add('active');
+  }
+
+  document.getElementById('btn-attract').addEventListener('click', () => setMode('attract'));
+  document.getElementById('btn-repel'  ).addEventListener('click', () => setMode('repel'));
+  document.getElementById('btn-vortex' ).addEventListener('click', () => setMode('vortex'));
+  document.getElementById('btn-reset'  ).addEventListener('click', () => {
+    wells.length = 0;
+    initGalaxy();
+    ctx.fillStyle = '#000';
+    ctx.fillRect(0, 0, W, H);
+  });
+
+  // ── Mouse ──────────────────────────────────────────────────────────────────
+  canvas.addEventListener('mousedown', e => {
+    e.preventDefault();
+    isPointerDown = true;
+    dragWell = addWell(e.clientX, e.clientY, e.button === 2 ? 'repel' : mode);
+  });
+
+  canvas.addEventListener('mousemove', e => {
+    if (dragWell && isPointerDown) {
+      dragWell.x = e.clientX;
+      dragWell.y = e.clientY;
+    }
+  });
+
+  function pointerUp() { isPointerDown = false; dragWell = null; }
+  canvas.addEventListener('mouseup',    pointerUp);
+  canvas.addEventListener('mouseleave', pointerUp);
+  canvas.addEventListener('contextmenu', e => e.preventDefault());
+
+  // ── Keyboard ───────────────────────────────────────────────────────────────
+  document.addEventListener('keydown', e => {
+    if (e.code === 'Space') { e.preventDefault(); wells.length = 0; }
+    if (e.code === 'KeyR') {
+      wells.length = 0;
+      initGalaxy();
+      ctx.fillStyle = '#000';
+      ctx.fillRect(0, 0, W, H);
+    }
+    if (e.key === '1') setMode('attract');
+    if (e.key === '2') setMode('repel');
+    if (e.key === '3') setMode('vortex');
+  });
+
+  // ── Scroll = strength ──────────────────────────────────────────────────────
+  window.addEventListener('wheel', e => {
+    wellStrength = Math.max(0.15, Math.min(4, wellStrength - e.deltaY * 0.0012));
+    updateStrengthUI();
+  }, { passive: true });
+
+  // ── Touch ──────────────────────────────────────────────────────────────────
+  const touchMap = new Map();
+
+  canvas.addEventListener('touchstart', e => {
+    e.preventDefault();
+    for (const t of e.changedTouches) {
+      touchMap.set(t.identifier, addWell(t.clientX, t.clientY, mode));
+    }
+  }, { passive: false });
+
+  canvas.addEventListener('touchmove', e => {
+    e.preventDefault();
+    for (const t of e.changedTouches) {
+      const w = touchMap.get(t.identifier);
+      if (w) { w.x = t.clientX; w.y = t.clientY; }
+    }
+  }, { passive: false });
+
+  canvas.addEventListener('touchend', e => {
+    for (const t of e.changedTouches) touchMap.delete(t.identifier);
+  });
+
+  // ── Init ───────────────────────────────────────────────────────────────────
+  window.addEventListener('resize', () => { resize(); initGalaxy(); });
+
+  resize();
+  ctx.fillStyle = '#000';
+  ctx.fillRect(0, 0, W, H);
+  initGalaxy();
+  requestAnimationFrame(loop);
+})();
+</script>
+</body>
+</html>
